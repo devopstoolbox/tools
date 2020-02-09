@@ -1,0 +1,69 @@
+{
+  "variables": {
+    "vm_name": "centos-7-base",
+    "iso_local_url": "{{env `ISO_DIR`}}/CentOS-7-x86_64-DVD-1908.iso",
+    "iso_download_url": "http://mirrors.umflint.edu/CentOS/7/isos/x86_64/CentOS-7-x86_64-DVD-1908.iso",
+    "iso_sha256": "9bba3da2876cb9fcf6c28fb636bcbd01832fe6d84cd7445fa58e44e569b3b4fe",
+
+    "vbox_guest_os_type": "RedHat_64",
+    "vmware_guest_os_type": "rhel7-64",
+    "vagrantfile_template": "files/centos-7-base-vagrantfile",
+
+    "playbook_file": "provisioners/ansible/playbook.yml",
+
+    "vm_version": "1.0",
+    "vm_description": "{{user `vm_name`}} qemu {{timestamp}} by {{user `vm_author`}}"
+  },
+
+  "builders": [
+
+    {
+      "type": "qemu",
+      "accelerator": "kvm",
+      "qemu_binary": "/usr/libexec/qemu-kvm",
+      "headless": "{{user `headless`}}",
+      "disk_size": "{{user `vm_disk_size`}}",
+      "format": "qcow2",
+      "disk_interface": "virtio-scsi",
+      "net_device": "virtio-net",
+
+      "boot_command": [
+        "<up><wait><tab>",
+        " text inst.ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/{{user `vm_name`}}.cfg net.ifnames=0",
+        "<enter><wait>"
+      ],
+
+      "vm_name": "{{split build_type \"-\" 0}}-{{user `vm_name`}}",
+      "iso_urls": [
+        "{{user `iso_local_url`}}",
+        "{{user `iso_download_url`}}"
+      ],
+      "iso_checksum": "{{user `iso_sha256`}}",
+      "iso_checksum_type": "sha256",
+      "output_directory": "{{user `builds_dir`}}/{{split build_type \"-\" 0}}-{{user `vm_name`}}",
+      "shutdown_command": "{{user `shutdown_command`}}",
+      "http_directory": "{{user `http_dir`}}",
+      "ssh_username": "{{user `vm_ssh_user`}}",
+      "ssh_password": "{{user `vm_ssh_pass`}}",
+      "ssh_timeout": "{{user `vm_ssh_timeout`}}",
+      "boot_wait": "{{user `boot_wait_time`}}"
+    }
+  ],
+
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "{{user `playbook_file`}}"
+    }
+  ],
+
+  "post-processors": [
+    {
+      "type": "vagrant",
+      "vagrantfile_template": "{{user `vagrantfile_template`}}",
+      "compression_level": 9,
+      "output": "{{user `builds_dir`}}/{{split build_type \"-\" 0}}-{{user `vm_name`}}/{{split build_type \"-\" 0}}-{{user `vm_name`}}.box",
+      "keep_input_artifact": true
+    }
+  ]
+}
